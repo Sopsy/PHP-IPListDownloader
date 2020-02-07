@@ -1,7 +1,8 @@
-# PHP-IPListDownloader
-IP list downloader.
+# IP list downloader
 
 Formerly used for blacklisting IP addresses at Ylilauta - mainly bots and open proxies.
+
+Designed to be run in crontab with PHP-CLI.
 
 Minimum PHP version is PHP 7.4.
 
