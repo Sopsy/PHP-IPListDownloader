@@ -340,7 +340,7 @@ class IpListDownloader
         $this->logInfo("Querying WHOIS for prefixes announced by AS{$asn}...");
 
         $as = escapeshellarg("AS{$asn}");
-        $prefixes = shell_exec("whois -h whois.radb.net -i origin {$as} | grep 'route:\|route6:' | awk '{print $2}'");
+        $prefixes = shell_exec("whois -h whois.radb.net -i origin {$as} | grep '^route:\|^route6:' | awk '{print $2}'");
 
         if (empty($prefixes)) {
             $this->endTiming(false);
@@ -420,7 +420,6 @@ class IpListDownloader
     /**
      * Trim, validate and add a given IP to the list
      *
-     * @todo Add support for IPv6
      * @param string $ip
      */
     protected function validateAndAddIp(string $ip): void
@@ -431,14 +430,42 @@ class IpListDownloader
             return;
         }
 
-        // Remove /32 from end to prevent duplicates
-        $ip = preg_replace('#/32$#', '', $ip);
+        // Split IP and subnet if needed
+        if (strpos($ip, '/') !== false) {
+            [$ip, $subnet] = explode('/', $ip, 2);
+        } else {
+            $subnet = false;
+        }
 
-        if (!$this->validateIPv4($ip)) {
-            $this->logWarn("Invalid IP address: {$ip}");
+        // If IPv6, subnet 128 can be omitted
+        if ($subnet === '128' && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            $subnet = false;
+        }
+
+        // If IPv4, subnet 32 can be omitted
+        if ($subnet === '32' && filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            $subnet = false;
+        }
+
+        // Compress and validate IP-address
+        $ipBin = inet_pton($ip);
+
+        if ($ipBin === false) {
+            $this->logWarn("Invalid IP address: '{$ip}'");
 
             return;
         }
+
+        $ip = inet_ntop($ipBin);
+
+        if ($ip === false) {
+            $this->logWarn("Invalid IP address: '{$ip}'");
+
+            return;
+        }
+
+        // Add back subnet to the IP
+        $ip .= ($subnet !== false ? '/' . $subnet : '');
 
         $this->list[] = $ip;
     }
@@ -455,19 +482,5 @@ class IpListDownloader
         $this->list = array_unique($this->list);
 
         $this->endTiming();
-    }
-
-    /**
-     * Validates an IPv4 address with CIDR notation
-     *
-     * @param string $ip IPv4 address
-     * @return bool True on valid IP, false on invalid IP
-     */
-    protected function validateIPv4(string $ip): bool
-    {
-        return preg_match(
-                '/^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/(3[0-2]|[1-2][0-9]|[0-9]))?$/',
-                $ip
-            ) !== false;
     }
 }
