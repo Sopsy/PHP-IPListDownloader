@@ -9,7 +9,7 @@ declare(strict_types=1);
  * @license MIT
  * @author Aleksi Kinnunen / Sopsy
  * @link https://github.com/Sopsy/PHP-IpListDownloader
- * @version 1.0
+ * @version 1.1
  */
 class IpListDownloader
 {
