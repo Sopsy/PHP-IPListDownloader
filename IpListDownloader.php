@@ -20,7 +20,7 @@ class IpListDownloader
     /**
      * IpListDownloader constructor.
      *
-     * @param bool $quiet Useful for piping output to text files etc. Fails quietly if enabled.
+     * @param bool $quiet Only print errors. Useful e.g. for cronjobs.
      */
     public function __construct(bool $quiet = false)
     {
